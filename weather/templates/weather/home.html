@@ -1,0 +1,312 @@
+{% extends 'weather/base.html' %}
+
+{% block title %}Weather App - Home{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Search Section -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-2xl font-bold mb-4">Search Weather</h2>
+        <form method="get" action="{% url 'weather:search' %}" class="flex gap-4">
+            <div class="flex-1">
+                <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
+                <input type="text" name="location" id="location" required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                       placeholder="Enter city name">
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-search mr-2"></i> Search
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Recent Queries Section -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold">Recent Queries</h2>
+            <a href="{% url 'weather:query_create' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-plus mr-2"></i> New Query
+            </a>
+        </div>
+        {% if queries %}
+            <div class="space-y-4">
+                {% for query in queries %}
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg font-semibold">{{ query.location }}</h3>
+                                <p class="text-gray-600">
+                                    {{ query.start_date|date:"M d, Y" }} - {{ query.end_date|date:"M d, Y" }}
+                                </p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="showForecast({{ query.pk }}, '{{ query.location }}')"
+                                        class="text-purple-600 hover:text-purple-900"
+                                        title="View Forecast">
+                                    <i class="fas fa-chart-line"></i>
+                                </button>
+                                <a href="{% url 'weather:query_update' query.pk %}" 
+                                   class="text-blue-600 hover:text-blue-900"
+                                   title="Edit Query">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'weather:query_delete' query.pk %}" 
+                                   class="text-red-600 hover:text-red-900"
+                                   onclick="return confirm('Are you sure you want to delete this query?')"
+                                   title="Delete Query">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                                <a href="{% url 'weather:export_weather_data' query.pk %}" 
+                                   class="text-green-600 hover:text-green-900"
+                                   title="Export Data">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-600 text-center py-4">No recent queries found.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Forecast Modal -->
+<div id="forecastModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold" id="modalTitle">Weather Forecast</h2>
+            <button onclick="closeForecast()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Temperature Chart -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="text-lg font-semibold mb-4">Temperature Forecast</h4>
+                <canvas id="tempChart" height="200"></canvas>
+            </div>
+            
+            <!-- Weather Conditions Chart -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="text-lg font-semibold mb-4">Weather Conditions</h4>
+                <canvas id="weatherChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let tempChart = null;
+let weatherChart = null;
+
+function showForecast(queryId, location) {
+    const modal = document.getElementById('forecastModal');
+    const modalTitle = document.getElementById('modalTitle');
+    modalTitle.textContent = `Weather Forecast - ${location}`;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    // Fetch query data
+    fetch(`/weather/api/query/${queryId}/`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('API Response:', data); // Debug log
+            
+            // Prepare forecast data
+            const forecast = data.forecast.list;
+            if (!forecast || !Array.isArray(forecast)) {
+                console.error('Invalid forecast data:', forecast);
+                return;
+            }
+            
+            // Group data by date
+            const dataByDate = {};
+            forecast.forEach(item => {
+                const date = new Date(item.dt * 1000);
+                const dateStr = date.toLocaleDateString();
+                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                if (!dataByDate[dateStr]) {
+                    dataByDate[dateStr] = {
+                        temps: [],
+                        humidity: [],
+                        windSpeed: [],
+                        times: []
+                    };
+                }
+                
+                dataByDate[dateStr].temps.push(item.main.temp);
+                dataByDate[dateStr].humidity.push(item.main.humidity);
+                dataByDate[dateStr].windSpeed.push(item.wind.speed);
+                dataByDate[dateStr].times.push(timeStr);
+            });
+
+            // Get unique dates for x-axis
+            const dates = Object.keys(dataByDate).sort((a, b) => new Date(a) - new Date(b));
+            
+            // Calculate daily averages
+            const dailyAverages = dates.map(date => ({
+                date: date,
+                avgTemp: dataByDate[date].temps.reduce((a, b) => a + b, 0) / dataByDate[date].temps.length,
+                avgHumidity: dataByDate[date].humidity.reduce((a, b) => a + b, 0) / dataByDate[date].humidity.length,
+                avgWindSpeed: dataByDate[date].windSpeed.reduce((a, b) => a + b, 0) / dataByDate[date].windSpeed.length
+            }));
+
+            console.log('Processed Data:', { dates, dailyAverages }); // Debug log
+
+            // Destroy existing charts if they exist
+            if (tempChart) tempChart.destroy();
+            if (weatherChart) weatherChart.destroy();
+
+            // Create Temperature Chart
+            tempChart = new Chart(document.getElementById('tempChart'), {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Average Temperature (°C)',
+                        data: dailyAverages.map(day => day.avgTemp),
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '5-Day Temperature Forecast'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const date = context.label;
+                                    const temps = dataByDate[date].temps;
+                                    const times = dataByDate[date].times;
+                                    const details = temps.map((temp, i) => `${times[i]}: ${temp}°C`).join('\n');
+                                    return [
+                                        `Average: ${context.raw}°C`,
+                                        'Hourly details:',
+                                        ...details.split('\n')
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Temperature (°C)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Create Weather Conditions Chart
+            weatherChart = new Chart(document.getElementById('weatherChart'), {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Average Humidity (%)',
+                        data: dailyAverages.map(day => day.avgHumidity),
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Average Wind Speed (m/s)',
+                        data: dailyAverages.map(day => day.avgWindSpeed),
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderColor: 'rgb(255, 99, 132)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '5-Day Weather Conditions'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const date = context.label;
+                                    const dataset = context.dataset.label;
+                                    const value = context.raw;
+                                    
+                                    if (dataset.includes('Humidity')) {
+                                        const humidities = dataByDate[date].humidity;
+                                        const times = dataByDate[date].times;
+                                        const details = humidities.map((h, i) => `${times[i]}: ${h}%`).join('\n');
+                                        return [
+                                            `Average: ${value}%`,
+                                            'Hourly details:',
+                                            ...details.split('\n')
+                                        ];
+                                    } else {
+                                        const windSpeeds = dataByDate[date].windSpeed;
+                                        const times = dataByDate[date].times;
+                                        const details = windSpeeds.map((w, i) => `${times[i]}: ${w} m/s`).join('\n');
+                                        return [
+                                            `Average: ${value} m/s`,
+                                            'Hourly details:',
+                                            ...details.split('\n')
+                                        ];
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Value'
+                            }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching forecast data:', error);
+            alert('Error loading forecast data. Please try again.');
+        });
+}
+
+function closeForecast() {
+    const modal = document.getElementById('forecastModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    
+    // Destroy charts when modal is closed
+    if (tempChart) {
+        tempChart.destroy();
+        tempChart = null;
+    }
+    if (weatherChart) {
+        weatherChart.destroy();
+        weatherChart = null;
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('forecastModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeForecast();
+    }
+});
+</script>
+{% endblock %} 

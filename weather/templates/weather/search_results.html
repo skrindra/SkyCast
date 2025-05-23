@@ -1,0 +1,302 @@
+{% extends 'weather/base.html' %}
+
+{% block title %}Weather Search Results{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Search Results Section -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold">Weather for {{ location }}</h2>
+            <a href="{% url 'weather:home' %}" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+
+        {% if current_weather %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Current Weather Card -->
+                <div class="bg-blue-50 p-6 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4">Current Weather</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-600">Temperature</p>
+                            <p class="text-2xl font-bold">{{ current_weather.temperature }}°C</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Feels Like</p>
+                            <p class="text-2xl font-bold">{{ current_weather.feels_like }}°C</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Humidity</p>
+                            <p class="text-2xl font-bold">{{ current_weather.humidity }}%</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Wind Speed</p>
+                            <p class="text-2xl font-bold">{{ current_weather.wind_speed }} m/s</p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-gray-600">Conditions</p>
+                        <p class="text-xl font-semibold">{{ current_weather.description }}</p>
+                    </div>
+                </div>
+
+                <!-- Save Query Form -->
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4">Save This Query</h3>
+                    <form method="post" action="{% url 'weather:query_create' %}" class="space-y-4">
+                        {% csrf_token %}
+                        <input type="hidden" name="location" value="{{ location }}">
+                        <div>
+                            <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
+                            <input type="date" name="start_date" id="start_date" required
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="end_date" class="block text-sm font-medium text-gray-700">End Date</label>
+                            <input type="date" name="end_date" id="end_date" required
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-save mr-2"></i> Save Query
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Forecast Section -->
+            {% if forecast %}
+                <div class="bg-white rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4">5-Day Forecast</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Temperature Chart -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="text-lg font-semibold mb-4">Temperature Forecast</h4>
+                            <canvas id="tempChart" height="200"></canvas>
+                        </div>
+                        
+                        <!-- Weather Conditions Chart -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="text-lg font-semibold mb-4">Weather Conditions</h4>
+                            <canvas id="weatherChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <p class="text-gray-600 text-center py-4">No weather data available for this location.</p>
+        {% endif %}
+    </div>
+
+    <!-- Recent Queries Section -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-2xl font-bold mb-4">Recent Queries</h2>
+        {% if queries %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Range</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for query in queries %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ query.location }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {{ query.start_date|date:"M d, Y" }} - {{ query.end_date|date:"M d, Y" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">{{ query.created_at|date:"M d, Y H:i" }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap space-x-2">
+                                    <a href="{% url 'weather:query_update' query.pk %}" 
+                                       class="text-blue-600 hover:text-blue-900"
+                                       title="Edit Query">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'weather:query_delete' query.pk %}" 
+                                       class="text-red-600 hover:text-red-900"
+                                       onclick="return confirm('Are you sure you want to delete this query?')"
+                                       title="Delete Query">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    <a href="{% url 'weather:export_weather_data' query.pk %}" 
+                                       class="text-green-600 hover:text-green-900"
+                                       title="Export Data">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-gray-600 text-center py-4">No recent queries found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if forecast %}
+        // Prepare forecast data
+        const forecast = {{ forecast|safe }};
+        
+        // Group data by date
+        const dataByDate = {};
+        forecast.list.forEach(item => {
+            const date = new Date(item.dt * 1000);
+            const dateStr = date.toLocaleDateString();
+            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            if (!dataByDate[dateStr]) {
+                dataByDate[dateStr] = {
+                    temps: [],
+                    humidity: [],
+                    windSpeed: [],
+                    times: []
+                };
+            }
+            
+            dataByDate[dateStr].temps.push(item.main.temp);
+            dataByDate[dateStr].humidity.push(item.main.humidity);
+            dataByDate[dateStr].windSpeed.push(item.wind.speed);
+            dataByDate[dateStr].times.push(timeStr);
+        });
+
+        // Get unique dates for x-axis
+        const dates = Object.keys(dataByDate);
+        
+        // Calculate daily averages for the 5-day overview
+        const dailyAverages = dates.map(date => ({
+            date: date,
+            avgTemp: dataByDate[date].temps.reduce((a, b) => a + b, 0) / dataByDate[date].temps.length,
+            avgHumidity: dataByDate[date].humidity.reduce((a, b) => a + b, 0) / dataByDate[date].humidity.length,
+            avgWindSpeed: dataByDate[date].windSpeed.reduce((a, b) => a + b, 0) / dataByDate[date].windSpeed.length
+        }));
+
+        // Temperature Chart
+        new Chart(document.getElementById('tempChart'), {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: 'Average Temperature (°C)',
+                    data: dailyAverages.map(day => day.avgTemp),
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '5-Day Temperature Forecast'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const date = context.label;
+                                const temps = dataByDate[date].temps;
+                                const times = dataByDate[date].times;
+                                const details = temps.map((temp, i) => `${times[i]}: ${temp}°C`).join('\n');
+                                return [
+                                    `Average: ${context.raw}°C`,
+                                    'Hourly details:',
+                                    ...details.split('\n')
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Temperature (°C)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Weather Conditions Chart
+        new Chart(document.getElementById('weatherChart'), {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: 'Average Humidity (%)',
+                    data: dailyAverages.map(day => day.avgHumidity),
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgb(54, 162, 235)',
+                    borderWidth: 1
+                }, {
+                    label: 'Average Wind Speed (m/s)',
+                    data: dailyAverages.map(day => day.avgWindSpeed),
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '5-Day Weather Conditions'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const date = context.label;
+                                const dataset = context.dataset.label;
+                                const value = context.raw;
+                                
+                                if (dataset.includes('Humidity')) {
+                                    const humidities = dataByDate[date].humidity;
+                                    const times = dataByDate[date].times;
+                                    const details = humidities.map((h, i) => `${times[i]}: ${h}%`).join('\n');
+                                    return [
+                                        `Average: ${value}%`,
+                                        'Hourly details:',
+                                        ...details.split('\n')
+                                    ];
+                                } else {
+                                    const windSpeeds = dataByDate[date].windSpeed;
+                                    const times = dataByDate[date].times;
+                                    const details = windSpeeds.map((w, i) => `${times[i]}: ${w} m/s`).join('\n');
+                                    return [
+                                        `Average: ${value} m/s`,
+                                        'Hourly details:',
+                                        ...details.split('\n')
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Value'
+                        }
+                    }
+                }
+            }
+        });
+    {% endif %}
+});
+</script>
+{% endblock %} 
