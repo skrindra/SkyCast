@@ -1,5 +1,9 @@
 {
     "version": 2,
+    "buildCommand": "pip install -r requirements.txt",
+    "devCommand": "python manage.py runserver",
+    "installCommand": "pip install -r requirements.txt",
+    "framework": "django",
     "builds": [
         {
             "src": "weather_project/wsgi.py",

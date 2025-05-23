@@ -12,7 +12,9 @@ from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'weather_project.settings')
 
-application = get_wsgi_application()
-
 # Add this for Vercel
+if os.getenv('VERCEL'):
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'weather_project.settings'
+
+application = get_wsgi_application()
 app = application
