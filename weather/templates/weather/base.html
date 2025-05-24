@@ -74,11 +74,11 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-white shadow-lg mt-8">
+    <footer class="bg-white shadow-lg mt-8 fixed bottom-0 w-full">
         <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="text-gray-500">
-                    © 2025 Weather App
+                    © 2025 SkyCast
                 </div>
                 <div class="flex items-center space-x-2 mt-2 md:mt-0">
                     <a href="https://github.com/skrindra" target="_blank" rel="noopener noreferrer"
@@ -93,6 +93,9 @@
             </div>
         </div>
     </footer>
+
+    <!-- Add padding to main content to prevent footer overlap -->
+    <div class="h-20"></div>
 
     <!-- Info Modal -->
     <div id="infoModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">

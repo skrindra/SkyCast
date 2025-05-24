@@ -25,9 +25,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-your-secret-key-here')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*']  # For Vercel deployment
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -128,24 +128,6 @@ STATICFILES_DIRS = [
 # Create static directory if it doesn't exist
 if not os.path.exists(os.path.join(BASE_DIR, 'static')):
     os.makedirs(os.path.join(BASE_DIR, 'static'))
-
-# Vercel specific settings
-if os.getenv('VERCEL'):
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATICFILES_DIRS = [
-        os.path.join(BASE_DIR, 'static'),
-    ]
-    # Use SQLite for Vercel deployment
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        }
-    }
-    # Disable CSRF for Vercel deployment
-    CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app']
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SECURE = True
 
 # Configure whitenoise
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
