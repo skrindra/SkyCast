@@ -27,7 +27,14 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-your-secret-key-here'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['https://skycast-nlql.onrender.com', 'localhost', '127.0.0.1']
+# ALLOWED_HOSTS setting
+if DEBUG:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1'] # Add any other hosts needed for local development
+else:
+    ALLOWED_HOSTS = [config('RENDER_EXTERNAL_HOSTNAME', default='')] # Render provides this
+# Fallback for flexibility (use with caution in production)
+# if not ALLOWED_HOSTS:
+#     ALLOWED_HOSTS = ['*']
 
 # Application definition
 
