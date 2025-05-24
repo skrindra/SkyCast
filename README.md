@@ -1,138 +1,144 @@
-# SkyCast - Weather Forecast App
-Author: Sivakumar
+# SkyCast - Weather Application
 
-A sleek and modern weather application built with Django and OpenWeatherMap API, featuring interactive weather forecasts and data visualization.
+SkyCast is a Django-based web application that provides real-time weather information and forecasts using the OpenWeatherMap API. The application features a modern, responsive design and allows users to search for weather conditions, view forecasts, and save their queries.
 
 ## Features
 
-- Current weather lookup by location (city, zip, or coordinates)
-- 5-day weather forecast with detailed hourly data
-- Interactive weather graphs using Chart.js
-- Save and manage weather queries
-- Export functionality for both current and forecast data (CSV)
-- Responsive design with Tailwind CSS
-- Browser geolocation support
-- Delete confirmation modals for better UX
-- Collapsible weather forecast sections
-- GitHub profile integration in footer
+- 🌤️ Real-time weather information
+- 📅 5-day weather forecast
+- 📊 Interactive weather graphs using Chart.js
+- 💾 Save and view weather queries
+- 📱 Responsive design for all devices
+- 📤 Export weather data to CSV
+- 🔍 Search by city name
+- 📈 Historical query tracking
 
-## Tech Stack
+## Prerequisites
 
-- Django 4.2+
-- Python 3.10+
-- HTML5 + Tailwind CSS
-- Chart.js for data visualization
-- Vanilla JavaScript
-- SQLite
-- OpenWeatherMap API
+Before you begin, ensure you have the following installed:
 
-## Setup Instructions
+- Python 3.7 or higher
+- Git
+- pip (Python package installer)
+- Virtual environment tool (venv)
+- OpenWeatherMap API Key (Get one [here](https://openweathermap.org/api))
 
-1. Clone the repository:
-```bash
-git clone https://github.com/skrindra/SkyCast.git
-cd SkyCast
-```
+## Local Development Setup
 
-2. Create and activate a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/skrindra/SkyCast.git
+   cd SkyCast
+   ```
 
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+2. **Create and activate a virtual environment:**
+   ```bash
+   # Create virtual environment
+   python -m venv venv
 
-4. Create a `.env` file in the project root with your OpenWeatherMap API key:
-```
-OPENWEATHER_API_KEY=your_api_key_here
-```
+   # Activate virtual environment
+   # On macOS/Linux:
+   source venv/bin/activate
+   # On Windows:
+   venv\Scripts\activate
+   ```
 
-5. Run migrations:
-```bash
-python manage.py migrate
-```
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-6. Start the development server:
-```bash
-python manage.py runserver
-```
+4. **Set up environment variables:**
+   Create a `.env` file in the project root with:
+   ```env
+   SECRET_KEY=your_django_secret_key
+   OPENWEATHER_API_KEY=your_openweathermap_api_key
+   DEBUG=True
+   ```
 
-7. Visit http://localhost:8000 in your browser
+5. **Run database migrations:**
+   ```bash
+   python manage.py migrate
+   ```
 
-## Environment Variables
+6. **Collect static files:**
+   ```bash
+   python manage.py collectstatic --noinput
+   ```
 
-Create a `.env` file with the following variables:
-- `OPENWEATHER_API_KEY`: Your OpenWeatherMap API key
-- `DEBUG`: Set to True for development, False for production
-- `SECRET_KEY`: Django secret key
+7. **Run the development server:**
+   ```bash
+   python manage.py runserver
+   ```
+   The application will be available at `http://127.0.0.1:8000/weather/`
 
 ## Project Structure
 
 ```
 SkyCast/
-├── weather/              # Main app
+├── manage.py
+├── weather_project/         # Django project settings
+│   ├── settings.py         # Project settings and configurations
+│   ├── urls.py            # Main URL routing
+│   ├── wsgi.py           # WSGI configuration
+│   └── asgi.py           # ASGI configuration
+├── weather/               # Main application
+│   ├── migrations/       # Database migrations
+│   ├── static/          # Static files (CSS, JS, images)
+│   ├── templates/       # HTML templates
 │   ├── models.py        # Database models
 │   ├── views.py         # View logic
-│   ├── forms.py         # Form definitions
-│   ├── services.py      # Business logic
-│   ├── templates/       # HTML templates
-│   │   ├── base.html    # Base template
-│   │   ├── home.html    # Home page with recent queries
-│   │   ├── query_form.html    # Weather search form
-│   │   ├── search_results.html # Weather results
-│   │   └── query_confirm_delete.html # Delete confirmation
-│   └── static/          # Static files
-├── weather_project/     # Project settings
-├── manage.py
-└── requirements.txt
+│   ├── urls.py          # App URL routing
+│   └── services.py      # Weather API service
+├── staticfiles/         # Collected static files
+├── templates/           # Project-level templates
+├── requirements.txt     # Project dependencies
+└── .env                # Environment variables
 ```
 
-## Features in Detail
+## Dependencies
 
-### Weather Search
-- Search by city name, zip code, or coordinates
-- Support for future dates in weather queries
-- Real-time weather data from OpenWeatherMap API
+Key dependencies include:
+- Django 4.2.7
+- requests 2.31.0
+- python-dotenv 1.0.0
+- gunicorn 21.2.0
+- psycopg2-binary 2.9.9
+- dj-database-url 2.1.0
 
-### Data Visualization
-- Interactive temperature graphs using Chart.js
-- Collapsible forecast sections for better organization
-- Visual representation of weather trends
+## Deployment
 
-### User Experience
-- Responsive design that works on all devices
-- Intuitive navigation and user interface
-- Confirmation modals for important actions
-- Success/error messages for user feedback
+The project is configured for deployment on Render. The following files are included for deployment:
 
-### Data Management
-- Save and manage weather queries
-- Export functionality for both current and forecast data
-- Efficient data storage and retrieval
+- `render.yaml`: Infrastructure as Code configuration # for CLI based deployment
+- `build.sh`: Custom build script
 
-## Testing
+### Deployment Steps
 
-Run tests with:
-```bash
-python manage.py test
-```
+1. Push your code to GitHub
+2. Connect your repository to Render
+3. Create a new Web Service
+4. Configure environment variables in Render dashboard:
+   - `SECRET_KEY`
+   - `OPENWEATHER_API_KEY`
+   - `DEBUG=False`
+   - `DATABASE_URL` (automatically set if using Render PostgreSQL - Internal DB URL)
 
 ## Contributing
 
-Feel free to contribute to this project by:
-1. Forking the repository
-2. Creating a new branch
-3. Making your changes
-4. Submitting a pull request
+1. Fork the repository
+2. Create a new branch
+3. Make your changes
+4. Submit a pull request
 
 ## License
 
-MIT License
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Author
+## Support
 
-Sivakumar
-- GitHub: [skrindra](https://github.com/skrindra)
+For support, please open an issue in the GitHub repository or contact the maintainers.
+
+---
+
+Made with ❤️ by Sivakumar
